@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 import sys
 import types
+
+from mrq.job import queue_job
+
 from fetchman.downloader.http.spider_request import Request
 from fetchman.downloader.requests_downloader import RequestsDownLoader
 from fetchman.pipeline.pipe_item import pipeItem
@@ -10,6 +13,8 @@ from fetchman.utils import FetchManLogger
 from fetchman.utils.httpobj import urlparse_cached
 from fetchman.downloader.selenium_downloader import SeleniumDownLoader
 from fetchman.settings import default_settings
+from constants.queue_name import CRAWLER, PIPELINE
+from constants.task_name import CRAWLER_TASK, PIPELINE_TASK
 import uuid
 import re
 import time
@@ -160,8 +165,7 @@ class SpiderCore(object):
                         # logger.info("push request to queue..." + str(item))
                         if self._should_follow(item):
                             self._queue.push_pipe(item, pipe)
-                    else:
-                        if isinstance(item, pipeItem):
+                    elif isinstance(item, pipeItem):
                             # 如果返回对象是pipeItem，则用对应的pipeline处理
                             self._process_count += 1
                             for pipename in item.pipenames:
@@ -170,14 +174,17 @@ class SpiderCore(object):
                             if self.test:
                                 if self._process_count > 0:
                                     return
-                        else:
-                            # 如果返回对象不是pipeItem，则默认用每个pipeline处理
-                            self._process_count += 1
-                            for pipename, pipeline in self._pipelines.items():
-                                pipeline.process_item(item)
-                            if self.test:
-                                if self._process_count > 0:
-                                    return
+                    elif isinstance(item, str):  # 如果返回的是baseprocessor的路径
+                        queue_job(CRAWLER_TASK, item, queue=CRAWLER)
+                    else:
+                        raise Exception('not return correct value!!!')
+                        # 如果返回对象不是pipeItem，则默认用每个pipeline处理
+                        # self._process_count += 1
+                        # for pipename, pipeline in self._pipelines.items():
+                        #     pipeline.process_item(item)
+                        # if self.test:
+                        #     if self._process_count > 0:
+                        #         return
                 pipe.execute()
             elif isinstance(callback, Request):
                 # logger.info("push request to queue..." + str(back))
