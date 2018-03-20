@@ -1,22 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from fetchman.utils.reqser import request_to_dict
+
 from fetchman.spider.spider_core import SpiderCore
 from fetchman.processor.base_processor import BaseProcessor
 from fetchman.downloader.http.spider_request import Request
 from fetchman.utils.decorator import check
-from fetchman.pipeline.console_pipeline import ConsolePipeline
-from fetchman.pipeline.pipe_item import pipeItem
-
+from fetchman.pipeline.pipe_item import pipeItem, Violet
+import pickle
 from bs4 import BeautifulSoup as bs
 import hashlib
 import time
 import random
-import sys
-
-if sys.version_info < (3, 0):
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-
 
 
 # 爬取土流网解析器
@@ -27,14 +22,17 @@ class Tuliu_Processor(BaseProcessor):
     # 推入初始request
     @classmethod
     def init_start_requests(cls):
-        cls.start_requests.extend([Request(url='http://www.tuliu.com/news/list-c165/%s.html' % page, priority=0, meta={'newsCateId': '20171102111907007'}) for page in range(1, 9)])
-        cls.start_requests.extend([Request(url='http://www.tuliu.com/news/list-c163/%s.html' % page, priority=0, meta={'newsCateId': '20171102111907007'}) for page in range(1, 30)])
+        cls.start_requests.extend([Request(url='http://www.tuliu.com/news/list-c165/%s.html' % page, priority=0,
+                                           meta={'newsCateId': '20171102111907007'}) for page in range(1, 2)])
+        # cls.start_requests.extend([Request(url='http://www.tuliu.com/news/list-c163/%s.html' % page, priority=0,
+        #                                    meta={'newsCateId': '20171102111907007'}) for page in range(1, 30)])
 
     @check
     def process(self, response):
         soup = bs(response.m_response.content, 'lxml')
 
         tuliu_div_list = soup.select('div.news_list_list ul li.list_box')
+        detail_processor = Tuliu_Detail_Processor()
         for tuliu_div in tuliu_div_list:
             if tuliu_div.select('a img'):
                 detail_url = tuliu_div.select('a')[0]['href']
@@ -48,17 +46,25 @@ class Tuliu_Processor(BaseProcessor):
                 md5.update(rand_name.encode("utf8"))
                 img_name = md5.hexdigest() + '.jpg'
 
-                request = Request(url=detail_url, priority=1, callback=self.process_detail)
+                request = Request(url=detail_url, priority=1)
                 request.meta['name'] = name
                 request.meta['createTime'] = createTime
                 request.meta['shortDes'] = shortDes
                 request.meta['img_name'] = img_name
                 request.meta['newsCateId'] = response.request.meta['newsCateId']
-                yield request
+                d = request_to_dict(request, detail_processor)
+                # data = pickle.dumps(d, protocol=-1)
+                # yield request
+                yield Violet(Tuliu_Detail_Processor.__name__, d)
+
+
+class Tuliu_Detail_Processor(BaseProcessor):
+    spider_id = 'tuliu_detail_spider'
+    allowed_domains = ['tuliu.com']
 
     # 获取新闻详情并丢入DataBasePipeline
     @check
-    def process_detail(self, response):
+    def process(self, response):
         soup = bs(response.m_response.content, 'lxml')
         result = dict()
         result['newsProductId'] = time.strftime('%Y%m%d%H%M%S', time.localtime(time.time()))
@@ -85,6 +91,5 @@ class Tuliu_Processor(BaseProcessor):
 
 if __name__ == '__main__':
     # 生成爬虫对象，设置pipeline，启动爬虫
-    SpiderCore(Tuliu_Processor(),time_sleep=1) \
-        .set_pipeline(ConsolePipeline(), 'console') \
+    SpiderCore(Tuliu_Processor(), time_sleep=1) \
         .start()

@@ -7,7 +7,7 @@ from mrq.job import queue_job
 
 from fetchman.downloader.http.spider_request import Request
 from fetchman.downloader.requests_downloader import RequestsDownLoader
-from fetchman.pipeline.pipe_item import pipeItem
+from fetchman.pipeline.pipe_item import pipeItem, Violet
 from fetchman.scheduler.queue import PriorityQueue
 from fetchman.utils import FetchManLogger
 from fetchman.utils.httpobj import urlparse_cached
@@ -19,10 +19,6 @@ import uuid
 import re
 import time
 import traceback
-
-if sys.version_info < (3, 0):
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
 
 
 def _priority_compare(r1, r2):
@@ -42,7 +38,7 @@ class SpiderCore(object):
         FetchManLogger.init_logger(processor.spider_id)
         self._host_regex = self._get_host_regex()
         self._spider_status = 'stopped'
-        self._pipelines = {}
+        # self._pipelines = {}
         self._time_sleep = time_sleep
         if time_sleep:
             self._batch_size = 0
@@ -84,11 +80,11 @@ class SpiderCore(object):
                 self._batch_size = default_settings.DRIVER_POOL_SIZE - 1
         return self
 
-    def set_pipeline(self, pipeline=None, pipeline_name=None, ):
-        if not pipeline_name:
-            pipeline_name = str(uuid.uuid1())
-        self._pipelines[pipeline_name] = pipeline
-        return self
+    # def set_pipeline(self, pipeline=None, pipeline_name=None, ):
+    #     if not pipeline_name:
+    #         pipeline_name = str(uuid.uuid1())
+    #     self._pipelines[pipeline_name] = pipeline
+    #     return self
 
     def stop(self):
         if self._spider_status == 'stopped':
@@ -139,10 +135,7 @@ class SpiderCore(object):
         while True:
             count += 1
             if len(batch) > self._batch_size or count > self._batch_size:
-                if sys.version_info < (3, 0):
-                    batch.sort(_priority_compare)
-                else:
-                    batch.sort(key=_priority_compare_key, reverse=True)
+                batch.sort(key=_priority_compare_key, reverse=True)
                 yield batch
                 batch = []
                 count = 0
@@ -169,22 +162,15 @@ class SpiderCore(object):
                             # 如果返回对象是pipeItem，则用对应的pipeline处理
                             self._process_count += 1
                             for pipename in item.pipenames:
-                                if pipename in self._pipelines:
-                                    self._pipelines[pipename].process_item(item.result)
+                                queue_job(PIPELINE_TASK, {'pipeline': pipename, 'result': item.result},
+                                          queue=PIPELINE)
                             if self.test:
                                 if self._process_count > 0:
                                     return
-                    elif isinstance(item, str):  # 如果返回的是baseprocessor的路径
-                        queue_job(CRAWLER_TASK, item, queue=CRAWLER)
+                    elif isinstance(item, Violet):  # 如果返回的是tuple，即详情页的processor和详情页的请求信息
+                        queue_job(CRAWLER_TASK, {'processor': item.processor, 'request': item.request}, queue=CRAWLER)
                     else:
                         raise Exception('not return correct value!!!')
-                        # 如果返回对象不是pipeItem，则默认用每个pipeline处理
-                        # self._process_count += 1
-                        # for pipename, pipeline in self._pipelines.items():
-                        #     pipeline.process_item(item)
-                        # if self.test:
-                        #     if self._process_count > 0:
-                        #         return
                 pipe.execute()
             elif isinstance(callback, Request):
                 # logger.info("push request to queue..." + str(back))
@@ -194,16 +180,12 @@ class SpiderCore(object):
                 # 如果返回对象是pipeItem，则用对应的pipeline处理
                 self._process_count += 1
                 for pipename in callback.pipenames:
-                    if pipename in self._pipelines:
-                        self._pipelines[pipename].process_item(callback.result)
+                    queue_job(PIPELINE_TASK, {'pipeline': pipename, 'result': callback.result}, queue=PIPELINE)
+            elif isinstance(callback, Violet):  # 如果返回的是tuple，即详情页的processor和详情页的请求信息
+                queue_job(CRAWLER_TASK, {'processor': item.processor, 'request': item.request}, queue=CRAWLER)
             else:
-                # 如果返回对象不是pipeItem，则默认用每个pipeline处理
-                self._process_count += 1
-                for pipename, pipeline in self._pipelines.items():
-                    pipeline.process_item(callback.result)
-                if self.test:
-                    if self._process_count > 0:
-                        return
+                # # 如果返回对象不是pipeItem，则默认用每个pipeline处理
+                raise Exception('not return correct value!!!')
 
     def _should_follow(self, request):
         regex = self._host_regex

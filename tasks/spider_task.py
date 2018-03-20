@@ -6,19 +6,48 @@
  Date: 3/19/2018 2:53 PM 
  Description: 
 """
-import time
+from constants.pipeline_name import PIPEINE_MAP
+from fetchman.utils.reqser import request_from_dict
+
+from fetchman.spider.spider_core import SpiderCore
+from fetchman.utils.decorator import timeit
 from mrq.context import log
 from mrq.task import Task
+from common_utils import load_class
 
 
 class CrawlTask(Task):
 
+    @timeit
     def run(self, params):
-        log.info("adding", params)
-        res = params.get("a", 0) + params.get("b", 0)
+        log.info("crawl..........", params)
+        # {'processor': item.processor, 'request': item.request}
+        processor = params.get('processor', None)
+        request = params.get('request', None)
+        if processor is not None:
+            clazz = load_class('processors', processor)
+            # print(clazz)
+            processor_instance = clazz()
+            if request is not None:
+                request = request_from_dict(request)
+                # print(request)
+                processor_instance.set_start_requests([request])
+            SpiderCore(processor_instance, time_sleep=1).start()
 
-        if params.get("sleep", 0):
-            log.info("sleeping", params.get("sleep", 0))
-            time.sleep(params.get("sleep", 0))
 
-        return res
+class PipelineTask(Task):
+
+    @timeit
+    def run(self, params):
+        log.info("pipeline..........", params)
+        # {'processor': item.processor, 'request': item.request}
+        pipeline = params.get('pipeline', None)
+        result = params.get('result', None)
+        if pipeline is not None:
+            clazz = PIPEINE_MAP.get(pipeline)
+            clazz().process_item(result)
+
+
+if __name__ == '__main__':
+    clazz = load_class('processors', 'Tuliu_Detail_Processor')
+    print(clazz)

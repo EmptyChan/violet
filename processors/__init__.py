@@ -3,9 +3,6 @@
  Created with IntelliJ IDEA.
  Description:
  User: jinhuichen
- Date: 3/16/2018 5:34 PM 
+ Date: 3/19/2018 5:55 PM 
  Description: 
 """
-import os
-
-CURRENT_PATH = os.getcwd()

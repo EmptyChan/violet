@@ -6,6 +6,8 @@
  Date: 3/19/2018 11:16 AM 
  Description: 
 """
+from constants.queue_name import CRAWLER, PIPELINE
+
 """ Redis and MongoDB settings
 """
 # MongoDB settings
@@ -46,10 +48,10 @@ USE_LARGE_JOB_IDS = False  # Do not use compacted job IDs in Redis. For compatib
 
 """ mrq-worker settings
 """
-QUEUES = ("simple",)  # The queues to listen on.Defaults to default , which will listen on all queues.
+QUEUES = (CRAWLER, PIPELINE)  # The queues to listen on.Defaults to default , which will listen on all queues.
 MAX_JOBS = 0  # Gevent:max number of jobs to do before quitting. Workaround for memory leaks in your tasks. Defaults to 0
 MAX_MEMORY = 0  # Max memory (in Mb) after which the process will be shut down. Use with PROCESS = [1-N] to have supervisord automatically respawn the worker when this happens.Defaults to 1
-GRENLETS = 2  # Max number of greenlets to use.Defaults to 1.
+GRENLETS = 3  # Max number of greenlets to use.Defaults to 1.
 PROCESSES = 0  # Number of processes to launch with supervisord.Defaults to 0.
 SUPERVISORD_TEMPLATE = "supervisord_templates/default.conf"  # Path of supervisord template to use. Defaults to supervisord_templates/default.conf.
 SCHEDULER = False  # Run the scheduler.Defaults to False.

@@ -5,13 +5,7 @@ import redis
 from fetchman.scheduler.bloom_filter import BloomFilter
 from fetchman.utils.reqser import request_to_dict, request_from_dict
 from fetchman.settings import default_settings
-
-if sys.version_info < (3, 0):
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-    import cPickle
-else:
-    import pickle as cPickle
+import pickle as cPickle
 
 
 class Base(object):
@@ -20,8 +14,8 @@ class Base(object):
     def __init__(self, processor):
         self.task_id = processor.spider_id
         self.processor = processor
-        self._filter = BloomFilter(key=self.task_id)
-        self._server = redis.StrictRedis(host=default_settings.REDIS_HOST, port=default_settings.REDIS_PORT)
+        self._filter = BloomFilter(key=self.task_id, db=1, block_num=10)
+        self._server = redis.StrictRedis(host=default_settings.REDIS_HOST, port=default_settings.REDIS_PORT, db=1)
 
     def __len__(self):
         """Return the length of the queue"""

@@ -76,6 +76,10 @@ class BaseProcessor(object):
                         break
 
     @classmethod
+    def set_start_requests(cls, request: list):
+        cls.start_requests.extend(request)
+
+    @classmethod
     def init_start_requests(cls):
         pass
 
