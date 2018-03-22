@@ -84,28 +84,32 @@ class BaseProcessor(object):
         pass
 
     @classmethod
-    def push_start_request(cls):
-        queue = PriorityQueue(cls)
-        for start_request in cls.start_requests:
-            start_request.duplicate_remove = False
-            queue.push(start_request)
-            FetchManLogger.logger.info("push start request to queue :" + str(start_request))
+    def __len__(cls):
+        return len(cls.start_requests)
 
-    @classmethod
-    def push_request(cls, requests):
-        if isinstance(requests, list):
-            queue = PriorityQueue(cls)
-            for request in requests:
-                if isinstance(request, Request):
-                    request.duplicate_remove = False
-                    queue.push(request)
-                    FetchManLogger.logger.info("push request to queue :" + str(request))
-                else:
-                    FetchManLogger.logger.info("param is not Request!")
-        elif isinstance(requests, Request):
-            queue = PriorityQueue(cls)
-            requests.duplicate_remove = False
-            queue.push(requests)
-            FetchManLogger.logger.info("push request to queue :" + str(requests))
-        else:
-            FetchManLogger.logger.info("param is not Request!")
+    # @classmethod
+    # def push_start_request(cls):
+    #     queue = PriorityQueue(cls)
+    #     for start_request in cls.start_requests:
+    #         start_request.duplicate_remove = False
+    #         queue.push(start_request)
+    #         FetchManLogger.logger.info("push start request to queue :" + str(start_request))
+    #
+    # @classmethod
+    # def push_request(cls, requests):
+    #     if isinstance(requests, list):
+    #         queue = PriorityQueue(cls)
+    #         for request in requests:
+    #             if isinstance(request, Request):
+    #                 request.duplicate_remove = False
+    #                 queue.push(request)
+    #                 FetchManLogger.logger.info("push request to queue :" + str(request))
+    #             else:
+    #                 FetchManLogger.logger.info("param is not Request!")
+    #     elif isinstance(requests, Request):
+    #         queue = PriorityQueue(cls)
+    #         requests.duplicate_remove = False
+    #         queue.push(requests)
+    #         FetchManLogger.logger.info("push request to queue :" + str(requests))
+    #     else:
+    #         FetchManLogger.logger.info("param is not Request!")

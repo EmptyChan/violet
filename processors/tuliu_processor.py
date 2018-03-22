@@ -33,7 +33,7 @@ class Tuliu_Processor(BaseProcessor):
 
         tuliu_div_list = soup.select('div.news_list_list ul li.list_box')
         detail_processor = Tuliu_Detail_Processor()
-        for tuliu_div in tuliu_div_list:
+        for tuliu_div in tuliu_div_list[:3]:
             if tuliu_div.select('a img'):
                 detail_url = tuliu_div.select('a')[0]['href']
                 img_url = tuliu_div.select('a img')[0]['src']

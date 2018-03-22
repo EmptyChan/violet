@@ -110,6 +110,9 @@ class SpiderCore(object):
                     start_request.duplicate_remove = False
                     self._queue.push(start_request)
                     FetchManLogger.logger.info("start request:" + str(start_request))
+            # 去除所有添加到queue的start_request， 防止污染后续的processor
+            self._processor.start_requests.clear()
+            self._processor.start_requests = None
             for batch in self._batch_requests():
                 if len(batch) > 0:
                     self._crawl(batch)
@@ -132,18 +135,29 @@ class SpiderCore(object):
     def _batch_requests(self):
         batch = []
         count = 0
-        while True:
-            count += 1
-            if len(batch) > self._batch_size or count > self._batch_size:
-                batch.sort(key=_priority_compare_key, reverse=True)
-                yield batch
-                batch = []
-                count = 0
-            temp_request = self._queue.pop()
-            if temp_request:
-                if not temp_request.callback:
-                    temp_request.callback = self._processor.process
-                batch.append(temp_request)
+        retry = 0
+        try:
+            while True:
+                count += 1
+                if len(batch) > self._batch_size or count > self._batch_size:
+                    batch.sort(key=_priority_compare_key, reverse=True)
+                    print(len(batch))
+                    yield batch
+                    batch = []
+                    count = 0
+                temp_request = self._queue.pop()
+                queue_count = len(self._queue)
+                if temp_request is not None:
+                    if not temp_request.callback:
+                        temp_request.callback = self._processor.process
+                    batch.append(temp_request)
+                elif len(batch) == 0 and queue_count == 0:  # 等待几次，看队列中是否还有
+                    time.sleep(self._time_sleep)
+                    retry += 1
+                    if retry >= 3:
+                        break
+        except KeyboardInterrupt:
+            pass
 
     def _crawl(self, batch):
         responses = self._downloader.download(batch)

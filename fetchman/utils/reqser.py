@@ -65,7 +65,7 @@ def request_from_dict(d, processor=None):
             headers=d['headers'],
             cookies=d['cookies'],
             meta=d['meta'],
-            priority=d['priority'], )
+            priority=d['priority'])
 
 
 def _find_method(obj, func):
