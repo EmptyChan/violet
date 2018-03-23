@@ -10,10 +10,6 @@ from fetchman.downloader.proxy.proxy_pool import ProxyPool
 
 from fetchman.utils import FetchManLogger
 
-if sys.version_info < (3, 0):
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
-
 
 class RequestsDownLoader(BaseDownLoader):
     def __init__(self, loginer=None, use_proxy=False):
@@ -43,7 +39,6 @@ class RequestsDownLoader(BaseDownLoader):
 
     def download(self, batch):
         batch_requests = []
-
         for request in batch:
             session = requests.session()
             session.mount('https://', self._request_retry)

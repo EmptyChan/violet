@@ -1,13 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 import logging
 import os
 import time
 
-if sys.version_info < (3, 0):
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
 
 if not os.path.exists("log"):
     os.mkdir("log")
@@ -15,11 +11,12 @@ if not os.path.exists("log"):
 if not os.path.exists("log/error_content"):
     os.mkdir("log/error_content")
 
+
 class FetchManLogger(object):
     logger = None
 
     @classmethod
-    def init_logger(cls,name):
+    def init_logger(cls, name):
         name = name.upper()
         date_time = time.strftime('%Y-%m-%d', time.localtime(time.time()))
         cls.logger = logging.getLogger(name)

@@ -40,22 +40,23 @@ class SpiderCore(object):
         self._spider_status = 'stopped'
         # self._pipelines = {}
         self._time_sleep = time_sleep
+        self._batch_size = 1
         if time_sleep:
-            self._batch_size = 0
+            self._batch_size = 1
         else:
             if isinstance(downloader, SeleniumDownLoader):
                 self._batch_size = default_settings.DRIVER_POOL_SIZE - 1
             else:
                 if batch_size:
-                    self._batch_size = batch_size - 1
+                    self._batch_size = batch_size
                 else:
-                    self._batch_size = 9
+                    self._batch_size = 10
         self._spider_id = processor.spider_id
         self._process_count = 0
 
         if not downloader:
             self._downloader = RequestsDownLoader(use_proxy=use_proxy)
-        elif isinstance(downloader,SeleniumDownLoader):
+        elif isinstance(downloader, SeleniumDownLoader):
             self._downloader = downloader
             self._batch_size = default_settings.DRIVER_POOL_SIZE - 1
         else:
@@ -105,14 +106,14 @@ class SpiderCore(object):
             self._queue = PriorityQueue(self._processor)
             if not self._processor.start_requests:
                 self._processor.init_start_requests()
+            print('<<<>>>>><<<<>>>> %s' % str(len(self._processor.start_requests)))
             for start_request in self._processor.start_requests:
                 if self._should_follow(start_request):
                     start_request.duplicate_remove = False
                     self._queue.push(start_request)
-                    FetchManLogger.logger.info("start request:" + str(start_request))
+                    FetchManLogger.logger.info("start request:>>>>>>" + str(start_request))
             # 去除所有添加到queue的start_request， 防止污染后续的processor
             self._processor.start_requests.clear()
-            self._processor.start_requests = None
             for batch in self._batch_requests():
                 if len(batch) > 0:
                     self._crawl(batch)
@@ -139,9 +140,8 @@ class SpiderCore(object):
         try:
             while True:
                 count += 1
-                if len(batch) > self._batch_size or count > self._batch_size:
+                if len(batch) >= self._batch_size or count >= self._batch_size:
                     batch.sort(key=_priority_compare_key, reverse=True)
-                    print(len(batch))
                     yield batch
                     batch = []
                     count = 0
@@ -155,7 +155,7 @@ class SpiderCore(object):
                     time.sleep(self._time_sleep)
                     retry += 1
                     if retry >= 3:
-                        break
+                        return []
         except KeyboardInterrupt:
             pass
 
@@ -173,14 +173,15 @@ class SpiderCore(object):
                         if self._should_follow(item):
                             self._queue.push_pipe(item, pipe)
                     elif isinstance(item, pipeItem):
-                            # 如果返回对象是pipeItem，则用对应的pipeline处理
-                            self._process_count += 1
-                            for pipename in item.pipenames:
-                                queue_job(PIPELINE_TASK, {'pipeline': pipename, 'result': item.result},
-                                          queue=PIPELINE)
-                            if self.test:
-                                if self._process_count > 0:
-                                    return
+                        pass
+                        # 如果返回对象是pipeItem，则用对应的pipeline处理
+                        # self._process_count += 1
+                        # for pipename in item.pipenames:
+                        #     queue_job(PIPELINE_TASK, {'pipeline': pipename, 'result': item.result},
+                        #               queue=PIPELINE)
+                        # if self.test:
+                        #     if self._process_count > 0:
+                        #         return
                     elif isinstance(item, Violet):  # 如果返回的是tuple，即详情页的processor和详情页的请求信息
                         queue_job(CRAWLER_TASK, {'processor': item.processor, 'request': item.request}, queue=CRAWLER)
                     else:

@@ -49,6 +49,21 @@ class PipelineTask(Task):
             print('--------------------complete')
 
 
+def xxxyyyy(params):
+    processor = params.get('processor', None)
+    request = params.get('request', None)
+    if processor is not None:
+        clazz = load_class('processors', processor)
+        processor_instance = clazz()
+        if request is not None:
+            request = request_from_dict(request, processor_instance)
+            # print(request)
+            processor_instance.set_start_requests([request])
+        SpiderCore(processor_instance, time_sleep=1).start()
+        print('****************complete')
+
+
+
 if __name__ == '__main__':
     clazz = load_class('processors', 'Tuliu_Detail_Processor')
     print(clazz)
