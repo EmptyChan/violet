@@ -96,7 +96,7 @@ class Tuliu_Detail_Processor(BaseProcessor):
 if __name__ == '__main__':
     # res = no_queue_task({"processor": Tuliu_Processor.__name__})
     # 启动初始化任务
-    res = queue_job(CRAWLER_TASK, CrawlArgs(Tuliu_Processor)(), queue=CRAWLER)
+    res = queue_job(CRAWLER_TASK, CrawlArgs(Tuliu_Processor), queue=CRAWLER)
     print(res)
 ```
 
