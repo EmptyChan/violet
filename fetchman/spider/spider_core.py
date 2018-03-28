@@ -169,13 +169,13 @@ class SpiderCore(object):
                         # 如果返回对象是pipeItem，则用对应的pipeline处理
                         self._process_count += 1
                         for pipe_name in item.pipe_names:
-                            queue_job(PIPELINE_TASK, PipelineArgs(pipe_name, item.result)(),
+                            queue_job(PIPELINE_TASK, PipelineArgs(pipe_name, item.result),
                                       queue=PIPELINE)
                         if self.test:
                             if self._process_count > 0:
                                 return
                     elif isinstance(item, Violet):  # 如果返回的是tuple，即详情页的processor和详情页的请求信息
-                        queue_job(CRAWLER_TASK, CrawlArgs(item.processor, item.request)(), queue=CRAWLER)
+                        queue_job(CRAWLER_TASK, CrawlArgs(item.processor, item.request), queue=CRAWLER)
                     else:
                         raise Exception('not return correct value!!!')
                 pipe.execute()
@@ -187,9 +187,9 @@ class SpiderCore(object):
                 # 如果返回对象是pipeItem，则用对应的pipeline处理
                 self._process_count += 1
                 for pipe_name in callback.pipe_names:
-                    queue_job(PIPELINE_TASK, PipelineArgs(pipe_name, callback.result)(), queue=PIPELINE)
+                    queue_job(PIPELINE_TASK, PipelineArgs(pipe_name, callback.result), queue=PIPELINE)
             elif isinstance(callback, Violet):  # 如果返回的是tuple，即详情页的processor和详情页的请求信息
-                queue_job(CRAWLER_TASK, CrawlArgs(item.processor, item.request)(), queue=CRAWLER)
+                queue_job(CRAWLER_TASK, CrawlArgs(item.processor, item.request), queue=CRAWLER)
             else:
                 # # 如果返回对象不是pipeItem，则默认用每个pipeline处理
                 raise Exception('not return correct value!!!')

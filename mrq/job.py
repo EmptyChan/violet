@@ -636,7 +636,7 @@ def queue_jobs(main_task_path, params_list, queue=None, batch_size=1000):
         # Insert the job in MongoDB
         job_ids = Job.insert([{
             "path": main_task_path,
-            "params": params,
+            "params": params(),
             "queue": queue,
             "status": "queued"
         } for params in params_group], w=1, return_jobs=False)
