@@ -8,11 +8,13 @@
 """
 from constants.task_name import CRAWLER_TASK
 from constants.queue_name import CRAWLER
+from fetchman.pipeline.pipe_item import CrawlArgs
 from processors.tuliu_processor import Tuliu_Processor
 from mrq.job import queue_job
-from tasks.spider_task import xxxyyyy
+# from tasks.spider_task import no_queue_task
 
 if __name__ == '__main__':
-    res = xxxyyyy({"processor": Tuliu_Processor.__name__})
-    # res = queue_job(CRAWLER_TASK, {"processor": Tuliu_Processor.__name__}, queue=CRAWLER)
+    # res = no_queue_task({"processor": Tuliu_Processor.__name__})
+    # 启动初始化任务
+    res = queue_job(CRAWLER_TASK, CrawlArgs(Tuliu_Processor)(), queue=CRAWLER)
     print(res)

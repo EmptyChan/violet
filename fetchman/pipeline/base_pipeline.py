@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
-
-if sys.version_info < (3, 0):
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
+from fetchman.utils import FetchManLogger
 
 
-class ItemPipeline(object):
+class ItemPipelineMeta(type):
+    def __new__(cls, name, bases, attrs):
+        if name == 'ItemPipeline':
+            return super().__new__(cls, name, bases, attrs)
+        attrs['logger'] = FetchManLogger.init_logger(name)
+        return super().__new__(cls, name, bases, attrs)
+
+
+class ItemPipeline(metaclass=ItemPipelineMeta):
     def process_item(self, item):
         raise NotImplementedError

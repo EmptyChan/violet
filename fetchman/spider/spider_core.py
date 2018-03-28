@@ -1,21 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 import types
 
 from mrq.job import queue_job
 
 from fetchman.downloader.http.spider_request import Request
 from fetchman.downloader.requests_downloader import RequestsDownLoader
-from fetchman.pipeline.pipe_item import pipeItem, Violet
+from fetchman.pipeline.pipe_item import PipeItem, Violet, CrawlArgs, PipelineArgs
 from fetchman.scheduler.queue import PriorityQueue
-from fetchman.utils import FetchManLogger
 from fetchman.utils.httpobj import urlparse_cached
 from fetchman.downloader.selenium_downloader import SeleniumDownLoader
 from fetchman.settings import default_settings
 from constants.queue_name import CRAWLER, PIPELINE
 from constants.task_name import CRAWLER_TASK, PIPELINE_TASK
-import uuid
+# import uuid
 import re
 import time
 import traceback
@@ -35,7 +33,6 @@ class SpiderCore(object):
         # 用于测试,爬取成功第一个以后结束
         self.test = test
         self._processor = processor
-        FetchManLogger.init_logger(processor.spider_id)
         self._host_regex = self._get_host_regex()
         self._spider_status = 'stopped'
         # self._pipelines = {}
@@ -81,15 +78,9 @@ class SpiderCore(object):
                 self._batch_size = default_settings.DRIVER_POOL_SIZE - 1
         return self
 
-    # def set_pipeline(self, pipeline=None, pipeline_name=None, ):
-    #     if not pipeline_name:
-    #         pipeline_name = str(uuid.uuid1())
-    #     self._pipelines[pipeline_name] = pipeline
-    #     return self
-
     def stop(self):
         if self._spider_status == 'stopped':
-            FetchManLogger.logger.info("STOP %s SUCCESS" % self._spider_id)
+            self._processor.logger.info("STOP %s SUCCESS" % self._spider_id)
             return
         elif self._spider_status == 'stopping':
             while self._spider_status == 'stopping':
@@ -101,17 +92,18 @@ class SpiderCore(object):
 
     def start(self):
         try:
-            FetchManLogger.logger.info("START %s SUCCESS" % self._spider_id)
+            self._processor.logger.info("START %s SUCCESS" % self._spider_id)
             self._spider_status = 'start'
             self._queue = PriorityQueue(self._processor)
+            # print(self._processor.spider_start_requests)
             if not self._processor.start_requests:
                 self._processor.init_start_requests()
-            print('<<<>>>>><<<<>>>> %s' % str(len(self._processor.start_requests)))
+            print('START_REQUESTS COUNT ::: %s' % str(len(self._processor.start_requests)))
             for start_request in self._processor.start_requests:
                 if self._should_follow(start_request):
                     start_request.duplicate_remove = False
                     self._queue.push(start_request)
-                    FetchManLogger.logger.info("start request:>>>>>>" + str(start_request))
+                    self._processor.logger.info("start request:>>>>>>" + str(start_request))
             # 去除所有添加到queue的start_request， 防止污染后续的processor
             self._processor.start_requests.clear()
             for batch in self._batch_requests():
@@ -123,9 +115,9 @@ class SpiderCore(object):
                 if self._spider_status == 'stopping':
                     break
             self._spider_status = 'stopped'
-            FetchManLogger.logger.info("STOP %s SUCCESS" % self._spider_id)
+            self._processor.logger.info("STOP %s SUCCESS" % self._spider_id)
         except Exception:
-            FetchManLogger.logger.info("%s -- Exception -- Stopped -- %s" % (self._spider_id, traceback.format_exc()))
+            self._processor.logger.info("%s -- Exception -- Stopped -- %s" % (self._spider_id, traceback.format_exc()))
             self._spider_status = 'stopped'
 
     def restart(self):
@@ -164,6 +156,7 @@ class SpiderCore(object):
         if self._time_sleep:
             time.sleep(self._time_sleep)
         for response in responses:
+            self._processor.logger.info(response)
             callback = response.request.callback(response)
             if isinstance(callback, types.GeneratorType):
                 pipe = self._queue.get_pipe()
@@ -172,18 +165,17 @@ class SpiderCore(object):
                         # logger.info("push request to queue..." + str(item))
                         if self._should_follow(item):
                             self._queue.push_pipe(item, pipe)
-                    elif isinstance(item, pipeItem):
-                        pass
+                    elif isinstance(item, PipeItem):
                         # 如果返回对象是pipeItem，则用对应的pipeline处理
-                        # self._process_count += 1
-                        # for pipename in item.pipenames:
-                        #     queue_job(PIPELINE_TASK, {'pipeline': pipename, 'result': item.result},
-                        #               queue=PIPELINE)
-                        # if self.test:
-                        #     if self._process_count > 0:
-                        #         return
+                        self._process_count += 1
+                        for pipe_name in item.pipe_names:
+                            queue_job(PIPELINE_TASK, PipelineArgs(pipe_name, item.result)(),
+                                      queue=PIPELINE)
+                        if self.test:
+                            if self._process_count > 0:
+                                return
                     elif isinstance(item, Violet):  # 如果返回的是tuple，即详情页的processor和详情页的请求信息
-                        queue_job(CRAWLER_TASK, {'processor': item.processor, 'request': item.request}, queue=CRAWLER)
+                        queue_job(CRAWLER_TASK, CrawlArgs(item.processor, item.request)(), queue=CRAWLER)
                     else:
                         raise Exception('not return correct value!!!')
                 pipe.execute()
@@ -191,13 +183,13 @@ class SpiderCore(object):
                 # logger.info("push request to queue..." + str(back))
                 if self._should_follow(callback):
                     self._queue.push(callback)
-            elif isinstance(callback, pipeItem):
+            elif isinstance(callback, PipeItem):
                 # 如果返回对象是pipeItem，则用对应的pipeline处理
                 self._process_count += 1
-                for pipename in callback.pipenames:
-                    queue_job(PIPELINE_TASK, {'pipeline': pipename, 'result': callback.result}, queue=PIPELINE)
+                for pipe_name in callback.pipe_names:
+                    queue_job(PIPELINE_TASK, PipelineArgs(pipe_name, callback.result)(), queue=PIPELINE)
             elif isinstance(callback, Violet):  # 如果返回的是tuple，即详情页的processor和详情页的请求信息
-                queue_job(CRAWLER_TASK, {'processor': item.processor, 'request': item.request}, queue=CRAWLER)
+                queue_job(CRAWLER_TASK, CrawlArgs(item.processor, item.request)(), queue=CRAWLER)
             else:
                 # # 如果返回对象不是pipeItem，则默认用每个pipeline处理
                 raise Exception('not return correct value!!!')

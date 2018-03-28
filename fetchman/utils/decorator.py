@@ -22,7 +22,7 @@ def check(func):
                 retry_str = '\nrequest has been try max times! will not push again!'
 
             if response.m_response is None:
-                FetchManLogger.logger.error('response.m_response is None'
+                self.logger.error('response.m_response is None'
                              + '\nURL : ' + response.request.url
                              + retry_str)
             else:
@@ -31,7 +31,7 @@ def check(func):
                 with open(log_name, 'wb') as f:
                     f.write(response.m_response.content)
 
-                FetchManLogger.logger.error('response.m_response is failed 【' + str(response.m_response.status_code) + '】'
+                self.logger.error('response.m_response is failed 【' + str(response.m_response.status_code) + '】'
                              + '\nURL : ' + response.request.url
                              + '\nresponse: ' + log_name
                              + retry_str)
@@ -49,7 +49,7 @@ def check(func):
                 with open(log_name, 'wb') as f:
                     f.write(response.m_response.content)
 
-                FetchManLogger.logger.error('process error: ' + response.request.url
+                self.logger.error('process error: ' + response.request.url
                              + '\nresponse: ' + log_name
                              + '\n' + traceback.format_exc())
 
@@ -59,9 +59,10 @@ def check(func):
 def timeit(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        self = args[0]
         start = time.clock()
         ret = func(*args, **kwargs)
-        FetchManLogger.logger.info(func.__name__ + ' run time: ' + '{:.9f}'.format(time.clock() - start))
+        self.logger.info(str(func) + ' run time: ' + '{:.9f}'.format(time.clock() - start))
         return ret
 
     return wrapper
@@ -74,7 +75,7 @@ def timeit_generator(func):
         start = time.clock()
         for ret in rets:
             yield ret
-        FetchManLogger.logger.info(func.__name__ + ' run time: ' + '{:.9f}'.format(time.clock() - start))
+        FetchManLogger.logger.info(str(func) + ' run time: ' + '{:.9f}'.format(time.clock() - start))
 
     return wrapper
 

@@ -8,8 +8,8 @@ from builtins import str
 if "GEVENT_RESOLVER" not in os.environ:
     os.environ["GEVENT_RESOLVER"] = "ares"
 
-# from gevent import monkey
-# monkey.patch_all(subprocess=False)
+from gevent import monkey
+monkey.patch_all(subprocess=False)
 
 import sys
 import tempfile

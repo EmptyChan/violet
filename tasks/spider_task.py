@@ -32,7 +32,7 @@ class CrawlTask(Task):
                 # print(request)
                 processor_instance.set_start_requests([request])
             SpiderCore(processor_instance, time_sleep=1).start()
-            print('****************complete')
+            log.info('****************complete')
 
 
 class PipelineTask(Task):
@@ -46,10 +46,10 @@ class PipelineTask(Task):
         if pipeline is not None:
             clazz = PIPEINE_MAP.get(pipeline)
             clazz().process_item(result)
-            print('--------------------complete')
+            log.info('--------------------complete')
 
 
-def xxxyyyy(params):
+def no_queue_task(params):
     processor = params.get('processor', None)
     request = params.get('request', None)
     if processor is not None:

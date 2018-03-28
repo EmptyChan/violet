@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 import grequests
 import requests
 from requests.adapters import HTTPAdapter
@@ -13,6 +12,7 @@ from fetchman.utils import FetchManLogger
 
 class RequestsDownLoader(BaseDownLoader):
     def __init__(self, loginer=None, use_proxy=False):
+        super().__init__()
         self.loginer = loginer
         self.use_proxy = use_proxy
         if use_proxy:
@@ -111,7 +111,6 @@ class RequestsDownLoader(BaseDownLoader):
                 request=batch[index],
             )
             true_responses.append(true_response)
-            FetchManLogger.logger.info(true_response)
             index += 1
 
         return true_responses

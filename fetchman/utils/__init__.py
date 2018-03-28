@@ -39,3 +39,4 @@ class FetchManLogger(object):
         cls.logger.addHandler(ch)
         cls.logger.addHandler(fh_error)
         cls.logger.addHandler(fh_info)
+        return cls.logger

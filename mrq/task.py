@@ -1,11 +1,14 @@
 from builtins import object
 
+from fetchman.utils import FetchManLogger
+
+
 class Task(object):
 
     # Are we the first task that a Job called?
     is_main_task = False
     max_concurrency = 0
-
+    logger = FetchManLogger.init_logger(__name__)
     # Default write concern values when setting status=success
     # http://docs.mongodb.org/manual/reference/write-concern/
     status_success_update_w = None

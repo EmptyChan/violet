@@ -1,17 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import sys
 import re
 from bs4 import BeautifulSoup as bs
 from lxml import etree
 from fetchman.downloader.http.spider_request import Request
 from fetchman.utils.decorator import check
-from fetchman.scheduler.queue import PriorityQueue
 from fetchman.utils import FetchManLogger
-
-if sys.version_info < (3, 0):
-    reload(sys)
-    sys.setdefaultencoding('utf-8')
 
 
 def identity(x):
@@ -53,7 +47,35 @@ class LinkExtractor(object):
             return [response.nice_join(hit) for hit in hits]
 
 
-class BaseProcessor(object):
+class BaseMeta(type):
+    spider_start_requests = {}
+
+    def __new__(mcs, name, bases, attrs):
+        spider_id = None
+        mappings = {}
+        if name == 'BaseProcessor':
+            for k, v in attrs.items():
+                if str(k) == 'start_requests':
+                    mappings.setdefault(k, v)
+            for k, v in mappings.items():
+                attrs.pop(k)
+            return super().__new__(mcs, name, bases, attrs)
+        for k, v in attrs.items():
+            if str(k) == 'spider_id':
+                spider_id = v
+                mcs.spider_start_requests.setdefault(spider_id, [])
+            elif str(k) == 'start_requests':
+                mappings.setdefault(k, v)
+        for k, v in mappings.items():
+            mcs.spider_start_requests[spider_id].extend(v)
+            attrs.pop(k)
+        attrs['logger'] = FetchManLogger.init_logger(spider_id)
+        attrs['start_requests'] = mcs.spider_start_requests[spider_id]
+        instance = super().__new__(mcs, name, bases, attrs)
+        return instance
+
+
+class BaseProcessor(metaclass=BaseMeta):
     spider_id = None
     start_requests = []
     rules = ()

@@ -6,8 +6,8 @@ from fetchman.spider.spider_core import SpiderCore
 from fetchman.processor.base_processor import BaseProcessor
 from fetchman.downloader.http.spider_request import Request
 from fetchman.utils.decorator import check
-from fetchman.pipeline.pipe_item import pipeItem, Violet
-import pickle
+from fetchman.pipeline.pipe_item import PipeItem, Violet
+# import pickle
 from bs4 import BeautifulSoup as bs
 import hashlib
 import time
@@ -25,7 +25,7 @@ class Tuliu_Processor(BaseProcessor):
         cls.start_requests.extend([Request(url='http://www.tuliu.com/news/list-c165/%s.html' % page, priority=0,
                                            meta={'newsCateId': '20171102111907007'}) for page in range(1, 2)])
         # cls.start_requests.extend([Request(url='http://www.tuliu.com/news/list-c163/%s.html' % page, priority=0,
-        #                                    meta={'newsCateId': '20171102111907007'}) for page in range(1, 30)])
+        #                                    meta={'newsCateId': '20171102111907007'}) for page in range(1, 30)]
 
     @check
     def process(self, response):
@@ -53,9 +53,7 @@ class Tuliu_Processor(BaseProcessor):
                 request.meta['img_name'] = img_name
                 request.meta['newsCateId'] = response.request.meta['newsCateId']
                 d = request_to_dict(request, detail_processor)
-                # data = pickle.dumps(d, protocol=-1)
-                # yield request
-                yield Violet(Tuliu_Detail_Processor.__name__, d)
+                yield Violet(Tuliu_Detail_Processor, d)
 
 
 class Tuliu_Detail_Processor(BaseProcessor):
@@ -86,7 +84,7 @@ class Tuliu_Detail_Processor(BaseProcessor):
 
         result['longDes'] = str(longDes)
 
-        yield pipeItem(['console'], result)
+        yield PipeItem(['console'], result)
 
 
 if __name__ == '__main__':
