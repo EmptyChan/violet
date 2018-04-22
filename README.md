@@ -1,4 +1,4 @@
-# violet
+# AcgNewsCrawler
 整合```mrq```和```fetchman```为分布式的爬虫实现
 
 ### 原项目
@@ -7,12 +7,11 @@
 - **[mrq](https://github.com/pricingassistant/mrq)**
 
 
-
 ### 依赖环境
 > 依赖环境即需要```pip```安装的包等，请依照原项目自行安装。
 
 
-### 实例
+### 示例
 1.在```processors```文件夹下面新建一个继承```BaseProcessor```的自定义```processor```，例如```tuliu_processor.py```:
 
 ``` python
@@ -55,7 +54,8 @@ class Tuliu_Processor(BaseProcessor):
                 request.meta['img_name'] = img_name
                 request.meta['newsCateId'] = response.request.meta['newsCateId']
                 d = request_to_dict(request, detail_processor)
-                # 递送出新的crawl任务
+                # 递送出新的crawl任务， 即新的爬虫实例
+                # 如果希望在本爬虫实例中继续请求进行爬取操作，请yield出Request实例
                 yield Violet(Tuliu_Detail_Processor, d)
 
 # 详情页的处理器
@@ -87,7 +87,7 @@ class Tuliu_Detail_Processor(BaseProcessor):
 
         result['longDes'] = str(longDes)
         # 递送出新的pipeline任务
-        yield PipeItem(['console'], result)
+        yield PipeItem([CONSOLE_PIPELINE], result)
 
 ```
 
@@ -100,11 +100,11 @@ if __name__ == '__main__':
     print(res)
 ```
 
-3.打开命令行运行目录下的```python mrq_worker.py```。
+3.打开命令行运行目录下的```python mrq_worker.py```，即接收队列中派送出来的任务，并执行任务。
 
 > 默认情况下的配置从```mrq-config.py```中读取。
 
-4.另起一个命令行运行目录下的```python main.py```。前一个命令行将读取并执行队列中的任务。
+4.另起一个命令行运行目录下的```python main.py```。执行任务的分发，将任务分发到消息队列中。
 ![example](./example.png)
 
 5.运行目录下的```python mrq_monitor.py```开启网页监控，进入```http://localhost:5555```查看。

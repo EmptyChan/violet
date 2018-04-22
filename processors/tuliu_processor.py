@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from constants.pipeline_name import CONSOLE_PIPELINE
 from fetchman.utils.reqser import request_to_dict
-
 from fetchman.spider.spider_core import SpiderCore
 from fetchman.processor.base_processor import BaseProcessor
 from fetchman.downloader.http.spider_request import Request
@@ -84,7 +84,7 @@ class Tuliu_Detail_Processor(BaseProcessor):
 
         result['longDes'] = str(longDes)
 
-        yield PipeItem(['console'], result)
+        yield PipeItem([CONSOLE_PIPELINE], result)
 
 
 if __name__ == '__main__':
